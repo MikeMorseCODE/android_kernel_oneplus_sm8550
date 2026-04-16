@@ -883,7 +883,9 @@ config UCLAMP_BUCKETS_COUNT
 	  If in doubt, use the default value.
 
 #ifdef OPLUS_FEATURE_THERMAL_HORAE
-source "kernel/oplus_cpu/thermal/Kconfig"
+# Oplus thermal Horae sources are not present in this tree snapshot.
+# Keep this guard empty so Kconfig generation works without proprietary
+# vendor drop-ins.
 #endif /* OPLUS_FEATURE_THERMAL_HORAE */
 
 endmenu

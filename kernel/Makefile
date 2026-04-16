@@ -161,7 +161,8 @@ $(obj)/kheaders_data.tar.xz: FORCE
 clean-files := kheaders_data.tar.xz kheaders.md5
 
 #ifdef OPLUS_FEATURE_THERMAL_HORAE
-obj-$(CONFIG_HORAE_THERMAL_SHELL) += oplus_cpu/thermal/
+# Oplus thermal Horae sources are not present in this tree snapshot.
+# Keep this guard empty so builds work without proprietary vendor drop-ins.
 #endif /* OPLUS_FEATURE_THERMAL_HORAE */
 
 #
