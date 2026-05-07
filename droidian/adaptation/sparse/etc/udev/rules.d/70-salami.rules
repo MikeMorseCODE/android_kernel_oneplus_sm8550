@@ -1,0 +1,47 @@
+# Droidian udev rules for OnePlus 11 (salami) — SM8550 / Snapdragon 8 Gen 2
+
+# ── Display / GPU ──────────────────────────────────────────────────────────────
+KERNEL=="card0",                              SUBSYSTEM=="drm",          MODE="0660", GROUP="video"
+KERNEL=="renderD128",                         SUBSYSTEM=="drm",          MODE="0660", GROUP="render"
+
+# ── Input (touch, buttons, fingerprint) ───────────────────────────────────────
+SUBSYSTEM=="input",  KERNEL=="event*",                                   MODE="0660", GROUP="input"
+SUBSYSTEM=="input",  KERNEL=="mice",                                     MODE="0660", GROUP="input"
+SUBSYSTEM=="input",  KERNEL=="mouse*",                                   MODE="0660", GROUP="input"
+
+# ── IIO sensors (accelerometer, gyroscope, proximity, light) ──────────────────
+SUBSYSTEM=="iio",    KERNEL=="iio:device*",                              MODE="0660", GROUP="sensors"
+SUBSYSTEM=="iio",    ATTRS{name}=="accelerometer*",                      MODE="0660", GROUP="sensors"
+SUBSYSTEM=="iio",    ATTRS{name}=="gyro*",                               MODE="0660", GROUP="sensors"
+SUBSYSTEM=="iio",    ATTRS{name}=="proximity*",                          MODE="0660", GROUP="sensors"
+SUBSYSTEM=="iio",    ATTRS{name}=="als*",                                MODE="0660", GROUP="sensors"
+
+# ── Qualcomm QRTR modem bus ────────────────────────────────────────────────────
+SUBSYSTEM=="qrtr",                                                       MODE="0660", GROUP="modem"
+KERNEL=="radio*",                                                        MODE="0660", GROUP="modem"
+
+# ── USB (OTG, ADB, Qualcomm 9008 EDL) ─────────────────────────────────────────
+SUBSYSTEM=="usb",    ATTR{idVendor}=="05c6",                             MODE="0660", GROUP="plugdev"
+SUBSYSTEM=="usb",    ATTR{idVendor}=="05c6", ATTR{idProduct}=="9008",   MODE="0660", GROUP="plugdev"
+
+# ── Power supply / battery ────────────────────────────────────────────────────
+SUBSYSTEM=="power_supply",                                               MODE="0660", GROUP="power"
+
+# ── ALSA audio ────────────────────────────────────────────────────────────────
+SUBSYSTEM=="sound",  KERNEL=="controlC*",                                MODE="0660", GROUP="audio"
+SUBSYSTEM=="sound",  KERNEL=="pcmC*",                                    MODE="0660", GROUP="audio"
+SUBSYSTEM=="sound",  KERNEL=="timer",                                    MODE="0660", GROUP="audio"
+SUBSYSTEM=="sound",  KERNEL=="seq",                                      MODE="0660", GROUP="audio"
+
+# ── Bluetooth (hci) ───────────────────────────────────────────────────────────
+KERNEL=="hci*",      SUBSYSTEM=="bluetooth",                             MODE="0660", GROUP="bluetooth"
+
+# ── Vibrator ──────────────────────────────────────────────────────────────────
+SUBSYSTEM=="leds",   ATTRS{name}=="vibrator*",                           MODE="0660", GROUP="system"
+
+# ── Thermal zones ─────────────────────────────────────────────────────────────
+SUBSYSTEM=="thermal", KERNEL=="thermal_zone*",                           MODE="0664", GROUP="system"
+
+# ── Qualcomm misc (DIAG, RMNET, QMI) ─────────────────────────────────────────
+KERNEL=="diag",                                                          MODE="0660", GROUP="diag"
+KERNEL=="rmnet*",                                                        MODE="0660", GROUP="net"

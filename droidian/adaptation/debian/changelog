@@ -1,0 +1,5 @@
+adaptation-droidian-salami (1.0.0-1) bookworm; urgency=medium
+
+  * Initial release — native Linux boot, no Halium container.
+
+ -- MikeMorseCODE <mikemorsecode@users.noreply.github.com>  Wed, 07 May 2026 00:00:00 +0000

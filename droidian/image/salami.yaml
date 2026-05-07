@@ -1,0 +1,175 @@
+{{- $suite    := or .suite    "bookworm"              -}}
+{{- $arch     := or .arch     "arm64"                 -}}
+{{- $device   := or .device   "salami"                -}}
+{{- $image    := or .image    (printf "droidian-%s-arm64-%s.img" $device (env "DATE")) -}}
+{{- $hostname := or .hostname "salami"                -}}
+{{- $username := or .username "droidian"              -}}
+{{- $password := or .password "1234"                  -}}
+{{- $imgsize  := or .imgsize  "8GiB"                  -}}
+
+architecture: {{ $arch }}
+
+actions:
+  # ── 1. Bootstrap base Debian ────────────────────────────────────────────────
+  - action: debootstrap
+    suite: {{ $suite }}
+    components:
+      - main
+      - contrib
+      - non-free
+      - non-free-firmware
+    mirror: https://deb.debian.org/debian
+    variant: minbase
+    packages:
+      - apt-utils
+      - ca-certificates
+
+  # ── 2. Core system packages ─────────────────────────────────────────────────
+  - action: apt
+    recommends: false
+    packages:
+      # Init / session
+      - systemd
+      - systemd-sysv
+      - dbus
+      - udev
+      - udev-udeb
+      # Shell + tools
+      - bash
+      - vim-tiny
+      - wget
+      - curl
+      - iproute2
+      - iputils-ping
+      - net-tools
+      - less
+      - htop
+      - procps
+      # Network
+      - network-manager
+      - wpasupplicant
+      # SSH
+      - openssh-server
+      # Bluetooth
+      - bluez
+      - bluez-tools
+      # Audio
+      - alsa-utils
+      - pulseaudio
+      - pulseaudio-module-bluetooth
+      # Mobile UI — Phosh (GNOME Shell compositor for phones)
+      - phosh
+      - phoc
+      - gnome-session
+      - gnome-keyring
+      - gdm3
+      # Fonts
+      - fonts-dejavu-core
+      - fonts-noto-core
+      # Locale
+      - locales
+      - tzdata
+      # sudo
+      - sudo
+
+  # ── 3. Locale / timezone ────────────────────────────────────────────────────
+  - action: run
+    chroot: true
+    command: |
+      echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+      locale-gen
+      update-locale LANG=en_US.UTF-8
+
+  - action: run
+    chroot: true
+    command: ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
+
+  # ── 4. Hostname ─────────────────────────────────────────────────────────────
+  - action: run
+    chroot: true
+    command: echo "{{ $hostname }}" > /etc/hostname
+
+  - action: run
+    chroot: true
+    command: |
+      echo "127.0.0.1  localhost" > /etc/hosts
+      echo "127.0.1.1  {{ $hostname }}" >> /etc/hosts
+
+  # ── 5. Create user ──────────────────────────────────────────────────────────
+  - action: run
+    chroot: true
+    command: |
+      groupadd --system --gid 1000 {{ $username }} 2>/dev/null || true
+      useradd --system --uid 1000 --gid 1000 \
+              --home /home/{{ $username }} --shell /bin/bash \
+              --create-home {{ $username }}
+      echo "{{ $username }}:{{ $password }}" | chpasswd
+      usermod -aG sudo,audio,video,input,bluetooth,netdev,render {{ $username }}
+      # passwordless sudo for the droidian user
+      echo "{{ $username }} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/droidian
+
+  # ── 6. Add sensor/modem groups referenced by udev rules ────────────────────
+  - action: run
+    chroot: true
+    command: |
+      for g in sensors modem power diag; do
+        groupadd --system "$g" 2>/dev/null || true
+      done
+
+  # ── 7. Install device adaptation package ───────────────────────────────────
+  - action: overlay
+    source: ../adaptation-pkg
+    destination: /
+
+  - action: run
+    chroot: true
+    command: |
+      dpkg -i /tmp/adaptation-droidian-salami_*.deb || \
+        apt-get install -f -y
+
+  # ── 8. Enable systemd services ──────────────────────────────────────────────
+  - action: run
+    chroot: true
+    command: |
+      systemctl enable NetworkManager
+      systemctl enable ssh
+      systemctl enable bluetooth
+      systemctl enable phosh || true
+
+  # ── 9. SSH: allow root login for initial bring-up ───────────────────────────
+  - action: run
+    chroot: true
+    command: |
+      sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+      sed -i 's/#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+  # ── 10. Android partition mount points ─────────────────────────────────────
+  - action: run
+    chroot: true
+    command: mkdir -p /android/system /android/vendor
+
+  # ── 11. Create image ────────────────────────────────────────────────────────
+  - action: image-partition
+    imagename: {{ $image }}
+    imagesize: {{ $imgsize }}
+    partitiontype: gpt
+    mountpoints:
+      - mountpoint: /
+        partition: rootfs
+    partitions:
+      - name: rootfs
+        fs: ext4
+        start: 4MiB
+        end: 100%
+        flags: [boot]
+        fsoptions: -L droidian
+
+  # ── 12. Deploy filesystem ───────────────────────────────────────────────────
+  - action: filesystem-deploy
+    setup-fstab: true
+    setup-kernel-cmdline: false
+
+  # ── 13. Compress output ─────────────────────────────────────────────────────
+  - action: run
+    postprocess: true
+    command: gzip -9 {{ $image }}

@@ -1,0 +1,9 @@
+# fstab.halium for OnePlus 11 (salami) — SM8550
+# UFS controller: /dev/block/platform/soc/1da0000.ufshc/
+#
+# Native Linux boot: system/vendor mounted read-only for reference.
+# userdata is managed by the rootfs (not mounted here).
+#
+# <src>                                                             <mnt>            <type> <opts>          <dump> <pass>
+/dev/block/platform/soc/1da0000.ufshc/by-name/system              /android/system  ext4   ro,noatime      0      0
+/dev/block/platform/soc/1da0000.ufshc/by-name/vendor              /android/vendor  ext4   ro,noatime      0      0

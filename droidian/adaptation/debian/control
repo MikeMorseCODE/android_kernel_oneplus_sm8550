@@ -1,0 +1,16 @@
+Source: adaptation-droidian-salami
+Section: misc
+Priority: optional
+Maintainer: MikeMorseCODE <mikemorsecode@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.0
+
+Package: adaptation-droidian-salami
+Architecture: arm64
+Depends: ${misc:Depends}, udev, systemd
+Description: Droidian device adaptation for OnePlus 11 (salami)
+ Device-specific configuration for the OnePlus 11 (codename: salami),
+ based on Qualcomm SM8550 (Snapdragon 8 Gen 2).
+ .
+ Includes udev rules, partition table, and device properties for
+ native Linux boot without an Android Halium container.
