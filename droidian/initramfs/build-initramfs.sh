@@ -9,9 +9,7 @@ WORK=/tmp/initramfs
 echo "==> Installing build tools..."
 apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  cpio gzip \
-  android-sdk-libsparse-utils \
-  mkbootimg \
+  cpio gzip python3 \
   dpkg \
   qemu-user-static
 
@@ -42,14 +40,11 @@ echo "==> Packing initramfs.cpio.gz..."
 cd "$WORK"
 find . | cpio -H newc -o 2>/dev/null | gzip -9 > "$OUTPUT/initramfs.cpio.gz"
 
-# Package as init_boot.img (Android boot header v4)
+# Package as init_boot.img (Android boot header v4, ramdisk-only)
 echo "==> Building init_boot.img..."
-mkbootimg \
-  --ramdisk "$OUTPUT/initramfs.cpio.gz" \
-  --header_version 4 \
-  --os_version 13.0.0 \
-  --os_patch_level 2024-04 \
-  -o "$OUTPUT/init_boot.img"
+python3 /scripts/mkbootimg_v4.py \
+  "$OUTPUT/initramfs.cpio.gz" \
+  "$OUTPUT/init_boot.img"
 
 ls -lh "$OUTPUT/init_boot.img" "$OUTPUT/initramfs.cpio.gz"
 echo "==> Done."
