@@ -27,13 +27,13 @@ def create(ramdisk_path, output_path):
     hdr += struct.pack('<I', 0)                     # kernel_size  (0 = no kernel)
     hdr += struct.pack('<I', len(ramdisk))           # ramdisk_size
     hdr += struct.pack('<I', os_version(13,0,0,2024,4))  # os_version
-    hdr += struct.pack('<I', 1580)                  # header_size
+    hdr += struct.pack('<I', 1584)                  # header_size = sizeof(boot_img_hdr_v4)
     hdr += struct.pack('<4I', 0, 0, 0, 0)           # reserved[4]
     hdr += struct.pack('<I', 4)                     # header_version
     hdr += b'\x00' * (BOOT_ARGS_SIZE + BOOT_EXTRA_SIZE)  # cmdline
     hdr += struct.pack('<I', 0)                     # signature_size
 
-    assert len(hdr) == 1580 + 4, f"header size mismatch: {len(hdr)}"
+    assert len(hdr) == 1584, f"header size mismatch: {len(hdr)}"
 
     img = page_pad(hdr) + page_pad(ramdisk)
 

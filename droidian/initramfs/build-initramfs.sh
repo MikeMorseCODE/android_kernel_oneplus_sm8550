@@ -35,6 +35,11 @@ done
 cp /scripts/init "$WORK/init"
 chmod +x "$WORK/init"
 
+# Minimal device nodes
+mknod -m 600 "$WORK/dev/console" c 5 1
+mknod -m 666 "$WORK/dev/null"    c 1 3
+mknod -m 666 "$WORK/dev/zero"    c 1 5
+
 # Pack as cpio.gz
 echo "==> Packing initramfs.cpio.gz..."
 cd "$WORK"
