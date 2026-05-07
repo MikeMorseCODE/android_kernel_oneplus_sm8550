@@ -123,16 +123,10 @@ actions:
         groupadd --system "$g" 2>/dev/null || true
       done
 
-  # ── 7. Install device adaptation package ───────────────────────────────────
+  # ── 7. Install device adaptation files directly ────────────────────────────
   - action: overlay
-    source: ../adaptation-pkg
+    source: ../adaptation/sparse
     destination: /
-
-  - action: run
-    chroot: true
-    command: |
-      dpkg -i /tmp/adaptation-droidian-salami_*.deb || \
-        apt-get install -f -y
 
   # ── 7b. Make USB gadget scripts executable ──────────────────────────────────
   - action: run
