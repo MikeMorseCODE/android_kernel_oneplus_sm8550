@@ -2,13 +2,35 @@
 mount -t proc     proc     /proc
 mount -t sysfs    sysfs    /sys
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+mount -t configfs configfs /sys/kernel/config 2>/dev/null || true
 
-# Ensure console is available
 [ -c /dev/console ] || mknod -m 600 /dev/console c 5 1
 
 exec >/dev/console 2>/dev/console
 
-echo "Droidian initramfs: waiting for userdata..."
+echo "Droidian initramfs starting..."
+
+# USB ECM gadget for debug access
+G=/sys/kernel/config/usb_gadget/g1
+mkdir -p "$G"
+echo "0x1d6b" > "$G/idVendor"
+echo "0x0104" > "$G/idProduct"
+mkdir -p "$G/strings/0x409"
+echo "Droidian" > "$G/strings/0x409/manufacturer"
+echo "Salami"   > "$G/strings/0x409/product"
+mkdir -p "$G/functions/ecm.usb0"
+mkdir -p "$G/configs/c.1"
+ln -s "$G/functions/ecm.usb0" "$G/configs/c.1/" 2>/dev/null || true
+UDC=$(ls /sys/class/udc/ 2>/dev/null | head -1)
+[ -n "$UDC" ] && echo "$UDC" > "$G/UDC"
+sleep 1
+ifconfig usb0 192.168.2.15 netmask 255.255.255.0 up 2>/dev/null || true
+echo "USB ECM up: 192.168.2.15"
+
+# Telnet shell for debug
+telnetd -l /bin/sh -p 23 2>/dev/null || true
+
+echo "Waiting for userdata..."
 
 USERDATA=/dev/block/platform/soc/1da0000.ufshc/by-name/userdata
 i=0
@@ -18,14 +40,14 @@ while [ ! -b "$USERDATA" ] && [ $i -lt 150 ]; do
 done
 
 if [ ! -b "$USERDATA" ]; then
-    echo "ERROR: $USERDATA not found after 15s — dropping to shell"
+    echo "ERROR: $USERDATA not found — staying in initramfs"
     exec /bin/sh
 fi
 
 echo "Mounting Droidian rootfs..."
 mkdir -p /newroot
 if ! mount -t ext4 -o rw,noatime "$USERDATA" /newroot; then
-    echo "ERROR: mount failed — dropping to shell"
+    echo "ERROR: mount failed — staying in initramfs"
     exec /bin/sh
 fi
 
