@@ -167,3 +167,4 @@ arch/*/boot/dts/vendor
 
 # Documentation toolchain
 sphinx_*/
+droidian/image/kernel-droidian-salami.zip
