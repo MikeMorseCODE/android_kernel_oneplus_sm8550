@@ -96,15 +96,9 @@ DEBIAN_FRONTEND=noninteractive chroot "$ROOTFS" apt-get clean
 rm -f "$ROOTFS/usr/bin/qemu-aarch64-static"
 umount "$ROOTFS/dev/pts" "$ROOTFS/dev" "$ROOTFS/sys" "$ROOTFS/proc" 2>/dev/null || true
 
-echo "==> Creating ${SIZE_MB}M ext4 image..."
+echo "==> Creating and populating ${SIZE_MB}M ext4 image (no loop device needed)..."
 fallocate -l "${SIZE_MB}M" "$OUTPUT/$IMAGE"
-mkfs.ext4 -L droidian -m 0 "$OUTPUT/$IMAGE"
-
-echo "==> Populating image..."
-mkdir -p /mnt/img
-mount -o loop "$OUTPUT/$IMAGE" /mnt/img
-rsync -a --info=progress2 "$ROOTFS/" /mnt/img/
-umount /mnt/img
+mkfs.ext4 -L droidian -m 0 -d "$ROOTFS" "$OUTPUT/$IMAGE"
 
 echo "==> Compressing..."
 gzip -9 "$OUTPUT/$IMAGE"
