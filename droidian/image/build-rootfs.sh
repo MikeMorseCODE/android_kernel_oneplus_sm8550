@@ -81,7 +81,7 @@ sed -i 's|#PermitRootLogin.*|PermitRootLogin yes|' "$ROOTFS/etc/ssh/sshd_config"
 sed -i 's|#PasswordAuthentication.*|PasswordAuthentication yes|' "$ROOTFS/etc/ssh/sshd_config"
 
 echo "==> Copying device adaptation files..."
-cp -a /adaptation/. "$ROOTFS/"
+rsync -a /adaptation/ "$ROOTFS/"
 chmod +x "$ROOTFS/usr/sbin/usb-gadget-setup" \
          "$ROOTFS/usr/sbin/usb-gadget-teardown" 2>/dev/null || true
 mkdir -p "$ROOTFS/android/system" "$ROOTFS/android/vendor"
