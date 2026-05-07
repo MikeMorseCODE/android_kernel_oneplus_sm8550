@@ -1,0 +1,43 @@
+#!/bin/bash
+# USB RNDIS gadget setup — exposes SSH at 192.168.2.15 over USB
+# SM8550 UDC: a600000.dwc3
+
+GADGET=/sys/kernel/config/usb_gadget/g1
+UDC=$(ls /sys/class/udc/ 2>/dev/null | head -1)
+
+[ -z "$UDC" ] && { echo "usb-gadget: no UDC found"; exit 1; }
+
+mkdir -p "$GADGET"
+echo 0x18d1 > "$GADGET/idVendor"   # Google
+echo 0xd001 > "$GADGET/idProduct"
+echo 0x0100 > "$GADGET/bcdDevice"
+echo 0x0200 > "$GADGET/bcdUSB"
+
+mkdir -p "$GADGET/strings/0x409"
+echo "OnePlus11"        > "$GADGET/strings/0x409/product"
+echo "droidian-salami"  > "$GADGET/strings/0x409/manufacturer"
+echo "deadbeef00000001" > "$GADGET/strings/0x409/serialnumber"
+
+mkdir -p "$GADGET/configs/c.1/strings/0x409"
+echo "RNDIS" > "$GADGET/configs/c.1/strings/0x409/configuration"
+echo 500     > "$GADGET/configs/c.1/MaxPower"
+
+mkdir -p "$GADGET/functions/rndis.0"
+echo "DE:AD:BE:EF:00:01" > "$GADGET/functions/rndis.0/dev_addr"
+echo "DE:AD:BE:EF:00:02" > "$GADGET/functions/rndis.0/host_addr"
+
+ln -sf "$GADGET/functions/rndis.0" "$GADGET/configs/c.1/"
+
+echo "$UDC" > "$GADGET/UDC"
+
+# Wait for usb0 to appear then assign static IP
+for i in $(seq 1 10); do
+    if ip link show usb0 &>/dev/null; then
+        ip addr add 192.168.2.15/24 dev usb0
+        ip link set usb0 up
+        echo "usb-gadget: usb0 up at 192.168.2.15"
+        exit 0
+    fi
+    sleep 1
+done
+echo "usb-gadget: usb0 did not appear"

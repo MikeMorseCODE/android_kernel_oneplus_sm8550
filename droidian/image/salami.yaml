@@ -71,6 +71,13 @@ actions:
       - tzdata
       # sudo
       - sudo
+      # Modem / cellular (ModemManager + QMI/MBIM for Qualcomm QRTR)
+      - modemmanager
+      - libqmi-utils
+      - libmbim-utils
+      - ofono
+      # USB gadget networking deps
+      - kmod
 
   # ── 3. Locale / timezone ────────────────────────────────────────────────────
   - action: run
@@ -127,6 +134,12 @@ actions:
       dpkg -i /tmp/adaptation-droidian-salami_*.deb || \
         apt-get install -f -y
 
+  # ── 7b. Make USB gadget scripts executable ──────────────────────────────────
+  - action: run
+    chroot: true
+    command: |
+      chmod +x /usr/sbin/usb-gadget-setup /usr/sbin/usb-gadget-teardown
+
   # ── 8. Enable systemd services ──────────────────────────────────────────────
   - action: run
     chroot: true
@@ -134,6 +147,8 @@ actions:
       systemctl enable NetworkManager
       systemctl enable ssh
       systemctl enable bluetooth
+      systemctl enable ModemManager
+      systemctl enable usb-gadget-rndis
       systemctl enable phosh || true
 
   # ── 9. SSH: allow root login for initial bring-up ───────────────────────────

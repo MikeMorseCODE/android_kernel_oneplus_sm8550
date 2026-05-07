@@ -90,17 +90,34 @@ ssh droidian@<device-ip>   # password: 1234
 
 Find the device IP via: Settings → Wi-Fi → tap connected network → IP address
 
+### SSH over USB (no WiFi needed)
+
+Plug in a USB-C cable to your PC. The device appears as a RNDIS/USB network adapter.
+
+**Linux PC:**
+```bash
+# The PC side gets DHCP from the device — or set a static IP
+sudo ip addr add 192.168.2.1/24 dev usb0
+sudo ip link set usb0 up
+ssh droidian@192.168.2.15   # password: 1234
+```
+
+**macOS:** Install HoRNDIS, then connect: `ssh droidian@192.168.2.15`
+
+**Windows:** The device appears as "Remote NDIS Compatible Device" — set PC adapter IP to 192.168.2.1/24, then PuTTY to 192.168.2.15.
+
 ## Hardware Status (SM8550 native Linux)
 
 | Feature      | Status           | Notes                                      |
 |--------------|------------------|--------------------------------------------|
 | Boot         | Expected OK      | systemd boots via our kernel               |
+| SSH over USB | Built-in         | 192.168.2.15 via RNDIS gadget              |
 | Display      | Likely OK        | Qualcomm DRM driver in vendor kernel       |
 | Touch        | Likely OK        | Vendor driver in kernel                    |
 | WiFi         | Likely OK        | QCA6490 via ath11k (in vendor kernel)      |
 | Bluetooth    | Partial          | May need vendor firmware                   |
 | Audio        | Partial          | ALSA likely; PulseAudio bring-up needed    |
-| Modem / SMS  | No               | Needs QRTR + ModemManager bring-up         |
+| Modem / SMS  | Partial          | ModemManager + QMI/MBIM installed; needs QRTR bring-up |
 | Camera       | No               | Requires libcamera + V4L2 bring-up         |
 | GPS          | No               | Needs bring-up                             |
 | Fingerprint  | Unknown          | In-display optical, bring-up needed        |

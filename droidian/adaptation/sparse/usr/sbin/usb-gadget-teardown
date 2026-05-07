@@ -1,0 +1,8 @@
+#!/bin/bash
+GADGET=/sys/kernel/config/usb_gadget/g1
+[ -d "$GADGET" ] || exit 0
+echo "" > "$GADGET/UDC" 2>/dev/null
+rm -f "$GADGET/configs/c.1/rndis.0"
+rmdir "$GADGET/configs/c.1/strings/0x409" "$GADGET/configs/c.1" \
+      "$GADGET/functions/rndis.0" "$GADGET/strings/0x409" "$GADGET" 2>/dev/null
+ip link set usb0 down 2>/dev/null

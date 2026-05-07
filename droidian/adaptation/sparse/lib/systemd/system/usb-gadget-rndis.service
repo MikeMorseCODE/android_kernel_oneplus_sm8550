@@ -1,0 +1,15 @@
+[Unit]
+Description=USB RNDIS gadget networking (SSH over USB)
+After=sys-kernel-config.mount
+Requires=sys-kernel-config.mount
+Before=network-pre.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/usb-gadget-setup
+ExecStop=/usr/sbin/usb-gadget-teardown
+
+[Install]
+WantedBy=multi-user.target
