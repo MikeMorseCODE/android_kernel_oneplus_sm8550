@@ -57,6 +57,8 @@ done
 
 if [ ! -b "$USERDATA" ]; then
     echo "ERROR: $USERDATA not found — staying in initramfs"
+    # Write breadcrumb to kmsg for later inspection
+    echo "DROIDIAN: userdata_not_found uptime=$(cat /proc/uptime)" > /dev/kmsg
     exec /bin/sh
 fi
 
@@ -64,8 +66,13 @@ echo "Mounting Droidian rootfs..."
 mkdir -p /newroot
 if ! mount -t ext4 -o rw,noatime "$USERDATA" /newroot; then
     echo "ERROR: mount failed — staying in initramfs"
+    echo "DROIDIAN: mount_failed uptime=$(cat /proc/uptime)" > /dev/kmsg
     exec /bin/sh
 fi
+
+# Breadcrumb: confirm init reached switch_root
+echo "DROIDIAN: init_reached_switchroot uptime=$(cat /proc/uptime)" > /dev/kmsg
+echo "$(cat /proc/uptime) init_ran" > /newroot/droidian_boot_debug.txt
 
 echo "Switching root..."
 umount /proc /sys 2>/dev/null || true
