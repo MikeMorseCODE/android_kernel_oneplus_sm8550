@@ -14,36 +14,58 @@ No Halium/Android container — hardware is accessed via native kernel drivers.
 
 ## Install Build Dependencies
 
-### Option A — debos natively (Ubuntu/Debian)
+### Manjaro / Arch Linux (Docker — recommended)
+
+```bash
+# Install Docker
+sudo pacman -S docker
+
+# Start Docker and add yourself to the group
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+
+# Apply group change without logging out
+newgrp docker
+
+# Verify
+docker info
+```
+
+Then build with one command (no other deps needed):
+
+```bash
+cd droidian/image && make docker
+```
+
+### Ubuntu / Debian (native debos)
 
 ```bash
 sudo apt install debos qemu-user-static binfmt-support \
                  dpkg-dev debhelper
+cd droidian/image && make
 ```
 
-### Option B — Docker (any Linux)
+### Any OS (Docker fallback)
 
 ```bash
-docker pull godebos/debos
-# no other deps needed
+# Only Docker required
+cd droidian/image && make docker
 ```
 
 ## Build Steps
 
 ```bash
-# 1. Clone the kernel repo (the adaptation lives inside it)
+# 1. Clone the kernel repo
 git clone https://github.com/MikeMorseCODE/android_kernel_oneplus_sm8550.git
 cd android_kernel_oneplus_sm8550
 git checkout claude/droidian-salami
 
-# 2. Build
+# 2. Build (Docker — works on Manjaro, Arch, Ubuntu, macOS)
 cd droidian/image
+make docker
 
-# Native debos:
+# OR native (Debian/Ubuntu only)
 make
-
-# OR Docker:
-make image-docker
 ```
 
 Output: `droidian/image/droidian-salami-arm64-YYYYMMDD.img.gz`
