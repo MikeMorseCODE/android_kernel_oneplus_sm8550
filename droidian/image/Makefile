@@ -2,11 +2,11 @@ DEVICE  ?= salami
 DATE    := $(shell date +%Y%m%d)
 IMAGE   := droidian-$(DEVICE)-arm64-$(DATE).img.gz
 
-.PHONY: all docker clean check-docker
+.PHONY: all docker initramfs clean check-docker
 
 all: docker
 
-# Works on Manjaro, Arch, Ubuntu, macOS — only needs Docker
+# Build rootfs image
 docker: check-docker
 	@echo "==> Registering arm64 binfmt handlers..."
 	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -18,12 +18,23 @@ docker: check-docker
 	  -v "$$(realpath .)":/output \
 	  debian:bookworm \
 	  bash /scripts/build-rootfs.sh
-	@echo ""
-	@ls -lh $(IMAGE) 2>/dev/null || echo "Check /output for image"
+	@echo "==> Done: $(IMAGE)"
+
+# Build Linux initramfs + init_boot.img (fixes bootloop)
+initramfs: check-docker
+	@echo "==> Building ARM64 initramfs and init_boot.img..."
+	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	docker run --rm \
+	  --privileged \
+	  -v "$$(realpath ../initramfs)":/scripts \
+	  -v "$$(realpath .)":/output \
+	  debian:bookworm \
+	  bash /scripts/build-initramfs.sh
+	@echo "==> Flash with: fastboot flash init_boot init_boot.img"
 
 check-docker:
 	@docker info > /dev/null 2>&1 || \
 	  (echo "ERROR: Docker not running. Run: sudo systemctl start docker"; exit 1)
 
 clean:
-	rm -f *.img *.img.gz
+	rm -f *.img *.img.gz *.cpio.gz

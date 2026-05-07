@@ -1,0 +1,23 @@
+#!/bin/sh
+# Minimal Linux initramfs init for OnePlus 11 (salami)
+# Mounts userdata (Droidian rootfs) and switches root to systemd.
+
+mount -t proc     proc     /proc
+mount -t sysfs    sysfs    /sys
+mount -t devtmpfs devtmpfs /dev
+
+# Wait up to 10s for UFS block device to appear
+USERDATA=/dev/block/platform/soc/1da0000.ufshc/by-name/userdata
+i=0
+while [ ! -b "$USERDATA" ] && [ $i -lt 100 ]; do
+    sleep 0.1
+    i=$((i + 1))
+done
+
+mkdir -p /newroot
+mount -t ext4 -o rw,noatime "$USERDATA" /newroot
+
+# Unmount virtual filesystems before switch_root
+umount /proc /sys /dev
+
+exec switch_root /newroot /sbin/init
