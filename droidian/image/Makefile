@@ -8,7 +8,9 @@ all: docker
 
 # Build rootfs image — works on any OS with Docker (Manjaro, Arch, Ubuntu, macOS)
 docker: check-docker
-	@echo "==> Building Droidian rootfs with debos..."
+	@echo "==> Registering qemu-user-static binfmt handlers..."
+	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	@echo "==> Building Droidian rootfs with debos (chroot mode)..."
 	docker run --rm \
 	  --privileged \
 	  -v "$$(realpath .)":/recipes \
@@ -16,6 +18,7 @@ docker: check-docker
 	  -w /recipes \
 	  -e DATE=$(DATE) \
 	  godebos/debos \
+	    --disable-fakemachine \
 	    --artifactdir=/recipes \
 	    --cpus=$$(nproc) \
 	    $(DEVICE).yaml
