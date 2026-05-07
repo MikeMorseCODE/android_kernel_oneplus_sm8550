@@ -48,7 +48,7 @@ fi
 
 echo "Waiting for userdata..."
 
-USERDATA=/dev/block/platform/soc/1da0000.ufshc/by-name/userdata
+USERDATA=/dev/block/sda14
 i=0
 while [ ! -b "$USERDATA" ] && [ $i -lt 150 ]; do
     sleep 0.1
