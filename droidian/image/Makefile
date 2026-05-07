@@ -1,6 +1,8 @@
-DEVICE  ?= salami
-DATE    := $(shell date +%Y%m%d)
-IMAGE   := droidian-$(DEVICE)-arm64-$(DATE).img.gz
+DEVICE   ?= salami
+DATE     := $(shell date +%Y%m%d)
+IMAGE    := droidian-$(DEVICE)-arm64-$(DATE).img.gz
+WIFI_SSID ?=
+WIFI_PSK  ?=
 
 .PHONY: all docker initramfs vbmeta clean check-docker
 
@@ -13,6 +15,8 @@ docker: check-docker
 	@echo "==> Building Droidian rootfs (debootstrap + chroot)..."
 	docker run --rm \
 	  --privileged \
+	  -e WIFI_SSID="$(WIFI_SSID)" \
+	  -e WIFI_PSK="$(WIFI_PSK)" \
 	  -v "$$(realpath .)":/scripts \
 	  -v "$$(realpath ../adaptation/sparse)":/adaptation \
 	  -v "$$(realpath .)":/output \

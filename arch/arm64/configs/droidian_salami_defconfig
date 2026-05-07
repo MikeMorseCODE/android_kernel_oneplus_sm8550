@@ -5267,7 +5267,7 @@ CONFIG_UCSI_QTI_GLINK=m
 # CONFIG_TYPEC_TPS6598X is not set
 # CONFIG_TYPEC_HD3SS3220 is not set
 # CONFIG_TYPEC_STUSB160X is not set
-# CONFIG_TYPEC_QCOM_PMIC is not set
+CONFIG_TYPEC_QCOM_PMIC=y
 
 #
 # USB Type-C Multiplexer/DeMultiplexer Switch support

@@ -10,25 +10,41 @@ exec >/dev/console 2>/dev/console
 
 echo "Droidian initramfs starting..."
 
-# USB ECM gadget for debug access
-G=/sys/kernel/config/usb_gadget/g1
-mkdir -p "$G"
-echo "0x1d6b" > "$G/idVendor"
-echo "0x0104" > "$G/idProduct"
-mkdir -p "$G/strings/0x409"
-echo "Droidian" > "$G/strings/0x409/manufacturer"
-echo "Salami"   > "$G/strings/0x409/product"
-mkdir -p "$G/functions/ecm.usb0"
-mkdir -p "$G/configs/c.1"
-ln -s "$G/functions/ecm.usb0" "$G/configs/c.1/" 2>/dev/null || true
-UDC=$(ls /sys/class/udc/ 2>/dev/null | head -1)
-[ -n "$UDC" ] && echo "$UDC" > "$G/UDC"
-sleep 1
-ifconfig usb0 192.168.2.15 netmask 255.255.255.0 up 2>/dev/null || true
-echo "USB ECM up: 192.168.2.15"
+# Force USB peripheral mode via role-switch if available
+for p in /sys/class/usb_role/*/role; do
+    echo "device" > "$p" 2>/dev/null || true
+done
 
-# Telnet shell for debug
-telnetd -l /bin/sh -p 23 2>/dev/null || true
+# Wait up to 10s for UDC to appear (PMIC Type-C driver may need time)
+i=0
+while [ -z "$(ls /sys/class/udc/ 2>/dev/null)" ] && [ $i -lt 100 ]; do
+    sleep 0.1
+    i=$((i + 1))
+done
+
+UDC=$(ls /sys/class/udc/ 2>/dev/null | head -1)
+echo "UDC: ${UDC:-none}"
+
+# USB ECM gadget for debug access
+if [ -n "$UDC" ]; then
+    G=/sys/kernel/config/usb_gadget/g1
+    mkdir -p "$G"
+    echo "0x1d6b" > "$G/idVendor"
+    echo "0x0104" > "$G/idProduct"
+    mkdir -p "$G/strings/0x409"
+    echo "Droidian" > "$G/strings/0x409/manufacturer"
+    echo "Salami"   > "$G/strings/0x409/product"
+    mkdir -p "$G/functions/ecm.usb0"
+    mkdir -p "$G/configs/c.1"
+    ln -s "$G/functions/ecm.usb0" "$G/configs/c.1/" 2>/dev/null || true
+    echo "$UDC" > "$G/UDC"
+    sleep 1
+    ifconfig usb0 192.168.2.15 netmask 255.255.255.0 up 2>/dev/null || true
+    echo "USB ECM up: 192.168.2.15"
+    telnetd -l /bin/sh -p 23 2>/dev/null || true
+else
+    echo "No UDC found — USB gadget unavailable"
+fi
 
 echo "Waiting for userdata..."
 

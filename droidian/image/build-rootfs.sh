@@ -86,6 +86,37 @@ chmod +x "$ROOTFS/usr/sbin/usb-gadget-setup" \
          "$ROOTFS/usr/sbin/usb-gadget-teardown" 2>/dev/null || true
 mkdir -p "$ROOTFS/android/system" "$ROOTFS/android/vendor"
 
+echo "==> Configuring WiFi (if credentials provided)..."
+if [ -n "${WIFI_SSID:-}" ] && [ -n "${WIFI_PSK:-}" ]; then
+    mkdir -p "$ROOTFS/etc/NetworkManager/system-connections"
+    cat > "$ROOTFS/etc/NetworkManager/system-connections/wifi.nmconnection" <<EOF
+[connection]
+id=${WIFI_SSID}
+uuid=$(cat /proc/sys/kernel/random/uuid)
+type=wifi
+autoconnect=true
+autoconnect-priority=100
+
+[wifi]
+mode=infrastructure
+ssid=${WIFI_SSID}
+
+[wifi-security]
+auth-alg=open
+key-mgmt=wpa-psk
+psk=${WIFI_PSK}
+
+[ipv4]
+method=auto
+
+[ipv6]
+addr-gen-mode=default
+method=auto
+EOF
+    chmod 600 "$ROOTFS/etc/NetworkManager/system-connections/wifi.nmconnection"
+    echo "    WiFi profile written for SSID: ${WIFI_SSID}"
+fi
+
 echo "==> Enabling services..."
 for svc in NetworkManager ssh bluetooth ModemManager usb-gadget-rndis; do
   chroot "$ROOTFS" systemctl enable "$svc" 2>/dev/null || true
