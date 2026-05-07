@@ -125,7 +125,7 @@ actions:
 
   # ── 7. Install device adaptation files directly ────────────────────────────
   - action: overlay
-    source: ../adaptation/sparse
+    source: adaptation/sparse
     destination: /
 
   # ── 7b. Make USB gadget scripts executable ──────────────────────────────────
