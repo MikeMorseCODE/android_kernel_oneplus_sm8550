@@ -6,28 +6,24 @@ IMAGE   := droidian-$(DEVICE)-arm64-$(DATE).img.gz
 
 all: docker
 
-# Build rootfs image — works on any OS with Docker (Manjaro, Arch, Ubuntu, macOS)
+# Works on Manjaro, Arch, Ubuntu, macOS — only needs Docker
 docker: check-docker
-	@echo "==> Registering qemu-user-static binfmt handlers..."
+	@echo "==> Registering arm64 binfmt handlers..."
 	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-	@echo "==> Building Droidian rootfs with debos (chroot mode)..."
+	@echo "==> Building Droidian rootfs (debootstrap + chroot)..."
 	docker run --rm \
 	  --privileged \
-	  -v "$$(realpath .)":/recipes \
-	  -v "$$(realpath ../adaptation)":/recipes/adaptation \
-	  -w /recipes \
-	  -e DATE=$(DATE) \
-	  godebos/debos \
-	    --disable-fakemachine \
-	    --artifactdir=/recipes \
-	    --cpus=$$(nproc) \
-	    $(DEVICE).yaml
+	  -v "$$(realpath .)":/scripts \
+	  -v "$$(realpath ../adaptation/sparse)":/adaptation \
+	  -v "$$(realpath .)":/output \
+	  debian:bookworm \
+	  bash /scripts/build-rootfs.sh
 	@echo ""
-	@echo "==> Done: $(IMAGE)"
+	@ls -lh $(IMAGE) 2>/dev/null || echo "Check /output for image"
 
 check-docker:
 	@docker info > /dev/null 2>&1 || \
-	  (echo "ERROR: Docker is not running. Run: sudo systemctl start docker"; exit 1)
+	  (echo "ERROR: Docker not running. Run: sudo systemctl start docker"; exit 1)
 
 clean:
 	rm -f *.img *.img.gz
