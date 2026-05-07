@@ -2,7 +2,7 @@ DEVICE  ?= salami
 DATE    := $(shell date +%Y%m%d)
 IMAGE   := droidian-$(DEVICE)-arm64-$(DATE).img.gz
 
-.PHONY: all docker initramfs clean check-docker
+.PHONY: all docker initramfs vbmeta clean check-docker
 
 all: docker
 
@@ -31,6 +31,13 @@ initramfs: check-docker
 	  debian:bookworm \
 	  bash /scripts/build-initramfs.sh
 	@echo "==> Flash with: fastboot flash init_boot init_boot.img"
+
+# Generate vbmeta.img with AVB verification disabled (no backup needed)
+vbmeta:
+	python3 ../initramfs/mkvbmeta.py vbmeta.img
+	@echo "==> Flash with:"
+	@echo "    fastboot flash vbmeta vbmeta.img"
+	@echo "    fastboot flash vbmeta_system vbmeta.img  (if separate)"
 
 check-docker:
 	@docker info > /dev/null 2>&1 || \
