@@ -5,79 +5,69 @@ mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
 mount -t configfs configfs /sys/kernel/config 2>/dev/null || true
 
 [ -c /dev/console ] || mknod -m 600 /dev/console c 5 1
-
 exec >/dev/console 2>/dev/console
 
+echo "DROIDIAN: init started" > /dev/kmsg
 echo "Droidian initramfs starting..."
 
-# Force USB peripheral mode via role-switch if available
+# Force USB peripheral mode
 for p in /sys/class/usb_role/*/role; do
     echo "device" > "$p" 2>/dev/null || true
 done
 
-# Wait up to 10s for UDC to appear
+# Wait up to 15s for any UFS/SCSI block device to appear
+echo "DROIDIAN: waiting for block devices" > /dev/kmsg
 i=0
-while [ -z "$(ls /sys/class/udc/ 2>/dev/null)" ] && [ $i -lt 100 ]; do
+while [ $i -lt 150 ]; do
+    ls /dev/block/sd* >/dev/null 2>&1 && break
     sleep 0.1
     i=$((i + 1))
 done
 
-UDC=$(ls /sys/class/udc/ 2>/dev/null | head -1)
-echo "UDC: ${UDC:-none}"
+# Log all found block devices
+echo "DROIDIAN: block devices: $(ls /dev/block/sd* 2>/dev/null | tr '\n' ' ')" > /dev/kmsg
+echo "Block devices found: $(ls /dev/block/sd* 2>/dev/null | tr '\n' ' ')"
 
-# USB ECM gadget for debug access
-if [ -n "$UDC" ]; then
-    G=/sys/kernel/config/usb_gadget/g1
-    mkdir -p "$G"
-    echo "0x1d6b" > "$G/idVendor"
-    echo "0x0104" > "$G/idProduct"
-    mkdir -p "$G/strings/0x409"
-    echo "Droidian" > "$G/strings/0x409/manufacturer"
-    echo "Salami"   > "$G/strings/0x409/product"
-    mkdir -p "$G/functions/ecm.usb0"
-    mkdir -p "$G/configs/c.1"
-    ln -s "$G/functions/ecm.usb0" "$G/configs/c.1/" 2>/dev/null || true
-    echo "$UDC" > "$G/UDC"
-    sleep 1
-    ifconfig usb0 192.168.2.15 netmask 255.255.255.0 up 2>/dev/null || true
-    echo "USB ECM up: 192.168.2.15"
-    telnetd -l /bin/sh -p 23 2>/dev/null || true
-else
-    echo "No UDC found — USB gadget unavailable"
+# Write marker to first available block device sector 0 for debug
+FIRSTDEV=$(ls /dev/block/sd* 2>/dev/null | head -1)
+if [ -n "$FIRSTDEV" ]; then
+    /bin/busybox printf "DROIDIAN:BLKDEV_OK:${FIRSTDEV}\n" | \
+        /bin/busybox dd of="$FIRSTDEV" bs=512 count=1 2>/dev/null || true
 fi
 
-echo "Waiting for userdata..."
-
-USERDATA=/dev/block/sda14
-i=0
-while [ ! -b "$USERDATA" ] && [ $i -lt 150 ]; do
-    sleep 0.1
-    i=$((i + 1))
+# Find userdata by ext4 label "droidian"
+USERDATA=""
+for dev in /dev/block/sd*; do
+    [ -b "$dev" ] || continue
+    LABEL=$(/bin/busybox blkid "$dev" 2>/dev/null | /bin/busybox grep -o 'LABEL="[^"]*"' | /bin/busybox sed 's/LABEL="//;s/"//')
+    echo "DROIDIAN: $dev label=$LABEL" > /dev/kmsg
+    if [ "$LABEL" = "droidian" ]; then
+        USERDATA="$dev"
+        break
+    fi
 done
 
-if [ ! -b "$USERDATA" ]; then
-    echo "ERROR: $USERDATA not found after 15s"
-    echo "DROIDIAN:SDA14_NOT_FOUND" > /dev/kmsg
+# Fallback: try sda14
+[ -z "$USERDATA" ] && [ -b /dev/block/sda14 ] && USERDATA=/dev/block/sda14
+
+echo "DROIDIAN: userdata=$USERDATA" > /dev/kmsg
+echo "Userdata device: ${USERDATA:-not found}"
+
+if [ -z "$USERDATA" ]; then
+    echo "ERROR: could not find Droidian userdata partition"
     exec /bin/sh
 fi
-
-echo "sda14 found — writing raw marker..."
-# Write to sector 0 of sda14 (safe: ext4 superblock starts at byte 1024)
-/bin/busybox printf "DROIDIAN:SDA14_OK\n" | \
-    /bin/busybox dd of=/dev/block/sda14 bs=512 count=1 2>/dev/null || true
 
 echo "Mounting Droidian rootfs..."
 mkdir -p /newroot
 if ! mount -t ext4 -o rw,noatime "$USERDATA" /newroot; then
+    echo "DROIDIAN: mount failed on $USERDATA" > /dev/kmsg
     echo "ERROR: ext4 mount failed"
-    echo "DROIDIAN:MOUNT_FAILED" > /dev/kmsg
-    /bin/busybox printf "DROIDIAN:MOUNT_FAILED\n" | \
-        /bin/busybox dd of=/dev/block/sda14 bs=512 seek=1 count=1 2>/dev/null || true
     exec /bin/sh
 fi
 
-echo "$(cat /proc/uptime) init_ran" > /newroot/droidian_boot_debug.txt
-echo "DROIDIAN:SWITCHROOT_OK" > /dev/kmsg
+echo "$(cat /proc/uptime) init_ran $USERDATA" > /newroot/droidian_boot_debug.txt
+echo "DROIDIAN: switch_root" > /dev/kmsg
 
 echo "Switching root..."
 umount /proc /sys 2>/dev/null || true

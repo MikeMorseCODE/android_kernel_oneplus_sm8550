@@ -28,7 +28,7 @@ cp /usr/bin/busybox "$WORK/bin/busybox"
 chmod +x "$WORK/bin/busybox"
 
 # Symlinks for commands the init script needs
-for cmd in sh mount umount switch_root mkdir sleep ifconfig telnetd ln; do
+for cmd in sh mount umount switch_root mkdir sleep ifconfig telnetd ln blkid grep sed; do
     ln -s busybox "$WORK/bin/$cmd"
 done
 
