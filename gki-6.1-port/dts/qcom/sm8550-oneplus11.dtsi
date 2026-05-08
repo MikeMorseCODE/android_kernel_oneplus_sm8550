@@ -1,0 +1,194 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * OnePlus 11 (CPH2449 / CPH2447) device tree
+ *
+ * Based on CLO msm-kernel-6.1 sm8550-mtp.dtsi
+ *
+ * This file adds OnePlus 11 peripheral nodes on top of the Qualcomm
+ * sm8550.dtsi base.  GPIO numbers are taken from the OnePlus 5.15 vendor
+ * tree DTS fragments and must be verified against the actual schematic.
+ * Nodes marked TODO need GPIO/IRQ verification before enabling.
+ *
+ * Usage (in top-level .dts):
+ *   #include "sm8550.dtsi"
+ *   #include "pm8550.dtsi"       // or relevant PMIC dtsi
+ *   #include "sm8550-oneplus11.dtsi"
+ */
+
+/ {
+	model = "OnePlus 11";
+	compatible = "oneplus,salami", "qcom,sm8550";
+};
+
+/* ------------------------------------------------------------------ */
+/* Alert slider (tri-state key)                                        */
+/* GPIO numbers are approximate — verify against schematic             */
+/* ------------------------------------------------------------------ */
+&soc {
+	oplus_tri_state_key: oplus,tri-state-key {
+		compatible = "oplus,tri-state-key";
+		pinctrl-names = "default";
+		pinctrl-0 = <&trikey_pins>;
+		/* TODO: replace 42/43 with actual GPIO numbers from schematic */
+		gpios = <&tlmm 42 GPIO_ACTIVE_LOW>,   /* position-up sensor   */
+		        <&tlmm 43 GPIO_ACTIVE_LOW>;    /* position-down sensor */
+		interrupt-parent = <&tlmm>;
+		interrupts = <42 IRQ_TYPE_EDGE_BOTH>,
+		             <43 IRQ_TYPE_EDGE_BOTH>;
+		interrupt-names = "key-up", "key-down";
+	};
+};
+
+&tlmm {
+	trikey_pins: trikey-pins {
+		mux {
+			pins = "gpio42", "gpio43"; /* TODO: verify */
+			function = "gpio";
+		};
+		config {
+			pins = "gpio42", "gpio43";
+			drive-strength = <2>;
+			bias-pull-up;
+			input-enable;
+		};
+	};
+};
+
+/* ------------------------------------------------------------------ */
+/* Touchscreen — Goodix GT9916 (SPI)                                   */
+/* Uses mainline goodix_berlin driver (CONFIG_TOUCHSCREEN_GOODIX_BERLIN_SPI) */
+/* ------------------------------------------------------------------ */
+&spi0 { /* TODO: verify which SPI instance, may be &spi10 or similar */
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	goodix_ts: touchscreen@0 {
+		compatible = "goodix,gt9916";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+
+		/* TODO: verify GPIO numbers */
+		interrupt-parent = <&tlmm>;
+		interrupts = <22 IRQ_TYPE_LEVEL_LOW>; /* touch IRQ */
+
+		reset-gpios  = <&tlmm 21 GPIO_ACTIVE_LOW>; /* touch reset */
+		irq-gpios    = <&tlmm 22 GPIO_ACTIVE_LOW>;
+
+		avdd-supply  = <&vreg_l14b_3p0>;
+		iovdd-supply = <&vreg_l12b_1p8>;
+
+		touchscreen-size-x = <1440>;
+		touchscreen-size-y = <3216>;
+
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&ts_active>;
+		pinctrl-1 = <&ts_sleep>;
+	};
+};
+
+&tlmm {
+	ts_active: ts-active {
+		mux {
+			pins = "gpio21", "gpio22"; /* TODO: verify */
+			function = "gpio";
+		};
+		config {
+			pins = "gpio21", "gpio22";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+	};
+
+	ts_sleep: ts-sleep {
+		mux {
+			pins = "gpio21", "gpio22";
+			function = "gpio";
+		};
+		config {
+			pins = "gpio21";
+			drive-strength = <2>;
+			bias-pull-down;
+			output-low;
+		};
+		config-irq {
+			pins = "gpio22";
+			drive-strength = <2>;
+			bias-disable;
+			input-enable;
+		};
+	};
+};
+
+/* ------------------------------------------------------------------ */
+/* Haptics — AW8697                                                    */
+/* ------------------------------------------------------------------ */
+&i2c3 { /* TODO: verify I2C bus */
+	status = "okay";
+
+	aw8697_haptic: haptic@5a {
+		compatible = "awinic,aw8697";
+		reg = <0x5a>;
+		/* TODO: verify GPIO */
+		reset-gpio = <&tlmm 48 GPIO_ACTIVE_HIGH>;
+		irq-gpio   = <&tlmm 49 GPIO_ACTIVE_LOW>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <49 IRQ_TYPE_EDGE_FALLING>;
+		vcc-supply = <&vreg_l4b_1p8>;
+	};
+};
+
+/* ------------------------------------------------------------------ */
+/* Notification LED — AW210XX                                          */
+/* ------------------------------------------------------------------ */
+&i2c2 { /* TODO: verify I2C bus */
+	status = "okay";
+
+	aw210xx_led: led-controller@20 {
+		compatible = "awinic,aw21018";
+		reg = <0x20>;
+		/* TODO: verify GPIO */
+		enable-gpios = <&tlmm 50 GPIO_ACTIVE_HIGH>;
+		vcc-supply = <&vreg_l5b_0p88>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		led@0 {
+			reg = <0>;
+			label = "red";
+			linux,default-trigger = "none";
+		};
+
+		led@1 {
+			reg = <1>;
+			label = "green";
+			linux,default-trigger = "none";
+		};
+
+		led@2 {
+			reg = <2>;
+			label = "blue";
+			linux,default-trigger = "none";
+		};
+	};
+};
+
+/* ------------------------------------------------------------------ */
+/* NFC — ST21NFCD (I2C)                                               */
+/* Uses mainline st21nfcd driver (CONFIG_NFC_ST21NFCD_I2C)            */
+/* ------------------------------------------------------------------ */
+&i2c1 { /* TODO: verify I2C bus */
+	status = "okay";
+
+	st21nfcd: nfc@8 {
+		compatible = "st,st21nfcd-i2c";
+		reg = <0x08>;
+		/* TODO: verify GPIOs */
+		interrupt-parent = <&tlmm>;
+		interrupts = <30 IRQ_TYPE_EDGE_RISING>;
+		reset-gpios  = <&tlmm 31 GPIO_ACTIVE_HIGH>;
+		irq-gpios    = <&tlmm 30 GPIO_ACTIVE_HIGH>;
+		ese-present;
+		uicc-present;
+	};
+};

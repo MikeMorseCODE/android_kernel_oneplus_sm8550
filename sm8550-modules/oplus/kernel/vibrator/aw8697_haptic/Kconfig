@@ -1,1 +1,21 @@
-# Placeholder vendor Kconfig
+config AW8697_HAPTIC
+	tristate "Awinic AW8697 haptic motor driver"
+	depends on I2C && INPUT && OF
+	select INPUT_FF_MEMLESS
+	help
+	  Driver for the Awinic AW8697 linear resonant actuator (LRA)
+	  and eccentric rotating mass (ERM) haptic motor controller.
+
+	  Used in OnePlus 11 for vibration feedback.
+	  Communicates over I2C, loads haptic waveforms from firmware.
+
+	  To compile as a module, choose M here.
+
+config HAPTIC_FEEDBACK
+	tristate "Haptic feedback framework (OPLUS)"
+	depends on AW8697_HAPTIC
+	help
+	  OnePlus haptic feedback framework that sits above the AW8697
+	  driver and provides per-effect waveform selection.
+
+	  To compile as a module, choose M here.

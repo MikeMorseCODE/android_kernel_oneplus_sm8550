@@ -1,1 +1,10 @@
-# Placeholder vendor Kconfig
+config LEDS_AW210XX
+	tristate "Awinic AW210XX LED controller"
+	depends on I2C && LEDS_CLASS && OF
+	help
+	  Driver for the Awinic AW21018 / AW21024 / AW21036 I2C LED
+	  controller used for RGB notification LEDs.
+
+	  Used in OnePlus 11 for the notification/status LED.
+
+	  To compile as a module, choose M here.

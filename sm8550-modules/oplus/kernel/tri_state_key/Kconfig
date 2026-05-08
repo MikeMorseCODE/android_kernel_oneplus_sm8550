@@ -1,1 +1,11 @@
-# Placeholder vendor Kconfig
+config OPLUS_TRIKEY_MAIN
+	tristate "OnePlus tri-state alert slider"
+	depends on GPIOLIB && OF && EXTCON
+	help
+	  Driver for the OnePlus three-position alert slider found on
+	  OnePlus 7 Pro, 8 Pro, 9 Pro, 10 Pro, 11, and variants.
+
+	  Uses two GPIO inputs from hall-effect position sensors to detect
+	  ring / vibrate / silent slider positions, reported via extcon.
+
+	  To compile as a module, choose M here.
